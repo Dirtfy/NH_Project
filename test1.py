@@ -2,6 +2,7 @@ from mpl_toolkits.mplot3d import Axes3D
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
+from pandasql import sqldf
 from sklearn.cluster import KMeans
 
 class Data:
@@ -21,7 +22,7 @@ def polarToComplex(theta, r):
     return x+y*1j
 
 
-cus_ifo = pd.read_csv("./cus_ifo.csv", header=0, usecols=['act_no', 'mts_mm_access_type', 'tot_ivs_te_sgm_cd'])
+cus_ifo = pd.read_csv("./cus_ifo.csv", header=0, usecols=['act_no', 'mts_mm_access_type', 'tot_ivs_te_sgm_cd', 'bas_stk_trd_tp_cd'])
 cus_itg = pd.read_csv('./cus_itg_sct_bnc.csv', header=0, usecols=['act_no', 'itg_byn_cns_qty', 'itg_sll_cns_qty'])
 
 cus_ifo['mts_mm_access_type'] = cus_ifo['mts_mm_access_type'].astype('string')
@@ -31,7 +32,7 @@ cus_itg['act_no'] = cus_itg['act_no'].astype('string')
 data_mts = {}
 data_tot = {}
 for row_i, row in cus_ifo.iterrows():
-    if row_i > 0:
+    if row_i > 0 and str(row['bas_stk_trd_tp_cd']) != '1' and str(row['bas_stk_trd_tp_cd']) != '2':
         data_mts[row['act_no']] = row['mts_mm_access_type'].count('1')/6
         tmp = row['tot_ivs_te_sgm_cd']
         if tmp == 99:
@@ -54,6 +55,8 @@ data_set = {}
 for key in data_byn_sll:
     if key in data_mts and data_byn_sll[key] <= 10000:
         data_set[key] = Data(data_mts[key], data_tot[key], data_byn_sll[key]/10000)
+
+print(len(data_set))
 
 
 # print(data_mts)
@@ -86,6 +89,9 @@ X = np.array(bd)
 
 kmeans = KMeans(n_clusters=2)
 kmeans.fit(X)
+
+df = pd.DataFrame({'mts':bd[:,0], 'tot':bd[:,1], 'byn_sll':bd[:,2], 'group':kmeans.labels_})
+df.to_csv('cluster.csv', mode='w')
 
 print(kmeans.cluster_centers_)
 
